@@ -1,0 +1,30 @@
+#!/bin/sh
+
+. /etc/rc.conf
+
+if [ -z "${cbsd_workdir}" ]; then
+	echo "No cbsd_workdir initialized"
+	exit 1
+fi
+
+case "$*" in
+	--template)
+			cache_file="${cbsd_workdir}/tmp/bhyve-templates.json"
+			;;
+	--vm)
+			cache_file="${cbsd_workdir}/tmp/bhyve-vm.json"
+			;;
+	*)
+			echo "usage: --vm or --template"
+			exit 1
+			;;
+esac
+
+if [ -r ${cache_file} ]; then
+	cat ${cache_file}
+else
+	cbsd compile_bhyve_profiles $* > ${cache_file}
+	cat ${cache_file}
+fi
+
+
