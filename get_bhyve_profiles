@@ -21,10 +21,14 @@ case "$*" in
 esac
 
 if [ -r ${cache_file} ]; then
+	cache_file_size=$( /usr/bin/stat -f "%z" ${cache_file} 2>/dev/null )
+else
+	cache_file_size=0
+fi
+
+if [ -r ${cache_file} -a ${cache_file_size} -gt 0 ]; then
 	cat ${cache_file}
 else
 	cbsd compile_bhyve_profiles $* > ${cache_file}
 	cat ${cache_file}
 fi
-
-
