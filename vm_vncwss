@@ -15,9 +15,9 @@ init $*
 
 readconf vm_vncwss.conf
 
-[ -z "${daemon_user}" ] && daemon_user="web"
-[ -z "${supervisor_command}" ] && supervisor_command="/usr/local/bin/bash /usr/local/libexec/novnc-clonos/utils/launch.sh"
-[ -z "${supervisor_directory}" ] && supervisor_directory="/usr/local/libexec/novnc-clonos"
+[ -z "${daemon_user}" ] && daemon_user="www"
+[ -z "${supervisor_command}" ] && supervisor_command="/usr/local/bin/bash /usr/local/www/clonos/public/novnc/utils/launch.sh"
+[ -z "${supervisor_directory}" ] && supervisor_directory="/usr/local/www/clonos/public/novnc"
 
 [ ! -f ${jailsysdir}/${jname}/vnc_port ] && err 1 "${MAGENTA}No vnc_port file${NORMAL}"
 
