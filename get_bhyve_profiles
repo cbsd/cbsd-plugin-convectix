@@ -41,7 +41,7 @@ else
 	if [ ${clonos} -eq 1 ]; then
 		is_clonos_args="--is_clonos"
 	else
-		is_clonos_args
+		is_clonos_args=
 	fi
 	compile_bhyve_profiles --workdir ${workdir} --${src} ${is_clonos_args} > ${cache_file}
 	${CAT_CMD} ${cache_file}
