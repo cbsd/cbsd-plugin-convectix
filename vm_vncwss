@@ -6,12 +6,11 @@ MYDESC="Launch wss to vnc"
 CBSDMODULE="convectix"
 
 . ${subr}
+. ${cbsdinit}
+
 . ${system}
-. ${strings}
-. ${workdir}/universe.subr
-. ${workdir}/bhyve.subr
-. ${tools}
-init $*
+. ${distdir}/universe.subr
+. ${distdir}/bhyve.subr
 
 readconf vm_vncwss.conf
 
@@ -19,13 +18,13 @@ readconf vm_vncwss.conf
 [ -z "${supervisor_command}" ] && supervisor_command="/usr/local/bin/bash /usr/local/www/clonos/public/novnc/utils/launch.sh"
 [ -z "${supervisor_directory}" ] && supervisor_directory="/usr/local/www/clonos/public/novnc"
 
-[ ! -f ${jailsysdir}/${jname}/vnc_port ] && err 1 "${MAGENTA}No vnc_port file${NORMAL}"
+[ ! -f ${jailsysdir}/${jname}/vnc_port ] && err 1 "${N1_COLOR}No vnc_port file${N0_COLOR}"
 
-port=$( /bin/cat ${jailsysdir}/${jname}/vnc_port |awk '{printf $1}' )
+port=$( ${CAT_CMD} ${jailsysdir}/${jname}/vnc_port |awk '{printf $1}' )
 
 [ -z "${nodeip}" ] && nodeip="127.0.0.1"
 
-/bin/cat > /usr/local/etc/supervisor.d/program_vnc2wss.conf <<EOF
+${CAT_CMD} > /usr/local/etc/supervisor.d/program_vnc2wss.conf <<EOF
 [program:vnc2wss]
 environment=PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
 command=${supervisor_command} --listen 6081 --vnc 127.0.0.1:${port}
@@ -72,7 +71,7 @@ EOF
 /usr/local/bin/supervisorctl reread vnc2wss
 /usr/local/bin/supervisorctl update vnc2wss
 
-/bin/ps -axfw -w -o pid,ucomm,command -ww | /usr/bin/grep "novnc 6081" | while read _pid _ucomm _cmd; do
+/bin/ps -axfw -w -o pid,ucomm,command -ww | ${GREP_CMD} "novnc 6081" | while read _pid _ucomm _cmd; do
 	case "${_ucomm}" in
 		python*)
 			kill -9 ${_pid}

@@ -9,12 +9,11 @@ ip4_addr can be: DHCP or REALDHCP\n"
 CBSDMODULE="convectix"
 
 . ${subr}
+. ${cbsdinit}
+
 . ${system}
-. ${strings}
-. ${workdir}/universe.subr
-. ${workdir}/bhyve.subr
-. ${tools}
-init $*
+. ${distdir}/universe.subr
+. ${distdir}/bhyve.subr
 
 orig_ip4_addr="${ip4_addr}"
 
@@ -28,16 +27,16 @@ case "${orig_ip4_addr}" in
 		orig_mask=0
 		;;
 	*)
-		[ -z "${gw}" ] && err 1 "${MAGENTA}gw= is mandatory${NORMAL}"
-		[ -z "${mask}" ] && err 1 "${MAGENTA}mask= is mandatory${NORMAL}"
+		[ -z "${gw}" ] && err 1 "${N1_COLOR}gw= is mandatory${N0_COLOR}"
+		[ -z "${mask}" ] && err 1 "${N1_COLOR}mask= is mandatory${N0_COLOR}"
 		orig_gw="${gw}"
 		orig_mask="${mask}"
 		;;
 esac
 
 . ${jrcconf}
-[ $? -eq 1 ] && err 1 "${MAGENTA}Not found: ${GREEN}${jname}${NORMAL}"
-[ "${emulator}" != "bhyve" ] && err 1 "${MAGENTA}Not in bhyve mode${NORMAL}"
+[ $? -eq 1 ] && err 1 "${N1_COLOR}Not found: ${N2_COLOR}${jname}${N0_COLOR}"
+[ "${emulator}" != "bhyve" ] && err 1 "${N1_COLOR}Not in bhyve mode${N0_COLOR}"
 
 dsk_path="${jaildatadir}/${jname}-${jaildatapref}"
 system_dsk_path="${dsk_path}/cbsd.img"
@@ -52,7 +51,7 @@ if [ -z "${convectix_ssh_pubkey}" ]; then
 	convectix_ssh_pubkey="${sshdir}/authorized_keys"
 fi
 
-#[ ! -f ${convectix_ssh_pubkey} ] && err 1 "${MAGENTA}Unable to read pubkey: ${GREEN}${convectix_ssh_pubkey}${NORMAL}"
+#[ ! -f ${convectix_ssh_pubkey} ] && err 1 "${N1_COLOR}Unable to read pubkey: ${N2_COLOR}${convectix_ssh_pubkey}${N0_COLOR}"
 [ -z "${nameserver}" ] && nameserver="8.8.8.8,8.8.4.4"
 [ -z "${authuser}" ] && authuser="root"
 
@@ -60,9 +59,9 @@ read_authkey=
 [ "${authkey}" = "node" ] && read_authkey="${convectix_ssh_pubkey}"
 [ -n "${authkey}" ] && read_authauthkey="${authkey}"
 
-[ -n "${read_authkey}" -a -r "${read_authkey}" ] && authkey=$( /bin/cat ${read_authkey} )
+[ -n "${read_authkey}" -a -r "${read_authkey}" ] && authkey=$( ${CAT_CMD} ${read_authkey} )
 
-/bin/cat > ${system_dsk_path} <<CEOF
+${CAT_CMD} > ${system_dsk_path} <<CEOF
 #!/bin/sh
 cat > /etc/crsh/network.txt <<EOF
 ip4_addr="${orig_ip4_addr}"
@@ -75,20 +74,4 @@ EOF
 CEOF
 
 bset jname=${jname} ip4_addr="${orig_ip4_addr}"
-#cbsdsql local "UPDATE bhyve SET ip4_addr=\"${orig_ip4_addr}\" WHERE jname=\"${jname}\""
-
-#if [ -f ${_convectix_ssh_pubkey} ]; then
-#	# copy content of _pubfile in /root/.ssh/authorized_keys inside vm
-#
-#	/bin/cat >> ${system_dsk_path} <<CEOF
-#cat > /root/.ssh/authorized_keys <<EOF
-#CEOF
-#
-#	/bin/cat ${convectix_ssh_pubkey} >> ${system_dsk_path}
-#
-#	/bin/cat >> ${system_dsk_path} <<CEOF
-#EOF
-#CEOF
-#fi
-
-/usr/bin/truncate -s1m ${system_dsk_path}
+${TRUNCATE_CMD} -s1m ${system_dsk_path}

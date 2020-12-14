@@ -8,15 +8,15 @@ ip4_addr - can be 'DHCP' or 'REALDHCP'\n"
 CBSDMODULE="convectix"
 
 . ${subr}
+
+. ${cbsdinit}
+
 . ${system}
-. ${strings}
-. ${workdir}/universe.subr
-. ${workdir}/bhyve.subr
-. ${tools}
-init $*
+. ${distdir}/universe.subr
+. ${distdir}/bhyve.subr
 
 #defines
-_MYDIR=$( /usr/bin/dirname `/bin/realpath $0` )
+_MYDIR=$( /usr/bin/dirname `${REALPATH_CMD} $0` )
 
 ### MAIN Route ###
 set -e
@@ -44,7 +44,7 @@ fi
 case "${orig_ip4_addr}" in
 	[Dd][Hh][Cc][Pp])
 		orig_ip4_addr=$( dhcpd )
-		[ $? -eq 2 ] && err 1 "${MAGENTA}No free IP address for DHCP in nodeippool${NORMAL}"
+		[ $? -eq 2 ] && err 1 "${N1_COLOR}No free IP address for DHCP in nodeippool${N0_COLOR}"
 		;;
 	[Rr][Ee][Aa][Ll][Dd][Hh][Cc][Pp])
 		unset gw orig_gw mask orig_mask
@@ -76,12 +76,12 @@ else
 fi
 
 if [ "${orig_authkey}" != "0" ]; then
-	[ ! -r "${orig_authkey}" ] && err 1 "${MAGENTA}No such pubkey: ${GREEN}${orig_authkey}${NORMAL}"
+	[ ! -r "${orig_authkey}" ] && err 1 "${N1_COLOR}No such pubkey: ${N2_COLOR}${orig_authkey}${N0_COLOR}"
 fi
 
 . ${jrcconf}
-[ $? -eq 1 ] && err 1 "${MAGENTA}No such jail: ${GREEN}${jname}${NORMAL}"
-[ "${emulator}" != "bhyve" ] && err 1 "${MAGENTA}Only for bhyve type VMs${NORMAL}"
+[ $? -eq 1 ] && err 1 "${N1_COLOR}No such jail: ${N2_COLOR}${jname}${N0_COLOR}"
+[ "${emulator}" != "bhyve" ] && err 1 "${N1_COLOR}Only for bhyve type VMs${N0_COLOR}"
 
 lockfile="/tmp/make_ctld.lock"
 
@@ -110,7 +110,7 @@ trap "/etc/rc.d/ctld onestop > /dev/null 2>&1; /bin/rm -f ${lockfile}" HUP INT A
 is_getzvol ${data}/dsk1.vhd
 
 if ! is_getzvol ${data}/dsk1.vhd; then
-	err 1 "${MAGENTA}${data}/dsk1.vhd not on zvol${NORMAL}"
+	err 1 "${N1_COLOR}${data}/dsk1.vhd not on zvol${N0_COLOR}"
 fi
 
 zvolpath="/dev/zvol/${is_zvol}"
@@ -126,7 +126,7 @@ if [ -z "${size}" ]; then
 	exit 1
 fi
 
-/bin/cat > ${config} << EOF
+${CAT_CMD} > ${config} << EOF
 
 #isns-server ${listenip}
 
@@ -151,6 +151,10 @@ EOF
 
 chmod 0400 ${config}
 /etc/rc.d/ctld onestart
+
+/usr/sbin/service ctld onestatus
+
+[ $? -ne 0 ] && err 1 "${N1_COLOR}CTLd not runned${N0_COLOR}
 
 echo ":: ctld configured"
 

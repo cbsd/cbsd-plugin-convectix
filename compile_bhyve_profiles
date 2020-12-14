@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.7
 #v11.0.7
 import json
 import os
@@ -23,8 +23,12 @@ def get_vm_info(path,vm_filter):
   else:
     return ''
 
-def get_profile_list():
-    workdir = get_rcconf_var("cbsd_workdir")
+def get_profile_list(workdir):
+    if not workdir:
+      workdir = get_rcconf_var("cbsd_workdir")
+      if not workdir:
+        print("Empty workdir")
+        sys.exit(0)
     cmd = subprocess.Popen(['/usr/bin/find',workdir + '/etc/defaults/','-maxdepth','1','-depth','1','-type','f','-name','vm\-*\.conf' ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return (cmd.communicate()[0])
 
@@ -38,6 +42,9 @@ def str2bool(v):
 
 def get_args():
     parser = argparse.ArgumentParser(description='show bhyve profiles')
+    parser.add_argument('--cloud',  type=str2bool, nargs='?', const=True, help='show cloud profiles')
+    parser.add_argument('--workdir',  type=str, nargs='?', const=True, help='CBSD workdir')
+    parser.add_argument('--is_clonos',  type=str2bool, nargs='?', const=True, help='show templates marked for ClonOS')
     parser.add_argument('--template',  type=str2bool, nargs='?', const=True, help='show template')
     parser.add_argument('--vm', type=str2bool, nargs='?', const=True, help='show generic vm')
     return parser.parse_args()
@@ -45,7 +52,7 @@ def get_args():
 
 def main(args):
   _locals = locals()
-  profile_list = get_profile_list()
+  profile_list = get_profile_list(args.workdir)
 
   # check for variable exist
   try:
@@ -55,26 +62,40 @@ def main(args):
     exit
 
   vm_filter=""
+  clonos=0
 
-  if(args.vm):
-    vm_filter="(^long_description=|^vm_profile=|^vm_os_type=|^clonos_active=)"
+  if(args.cloud):
+    vm_filter="(^long_description=|^vm_profile=|^vm_os_type=|^clonos_active=|^is_template=|^is_cloud=|^imgsize_min=)"
     tpl=0
+    cloud=1
+    vm=0
+  if(args.is_clonos):
+    clonos=1
   if(args.template):
-    vm_filter="(^long_description=|^vm_profile=|^vm_os_type=|^clonos_active=|^is_template=)"
+    vm_filter="(^long_description=|^vm_profile=|^vm_os_type=|^clonos_active=|^is_template=|^imgsize_min=)"
     tpl=1
+    cloud=0
+    vm=0
+  if(args.vm):
+    vm_filter="(^long_description=|^vm_profile=|^vm_os_type=|^clonos_active=|^is_template=|^imgsize_min=)"
+    tpl=0
+    cloud=0
+    vm=1
 
   if ( vm_filter=="" ):
-    print("specify --vm or --template")
+    print("specify --cloud, --vm or --template [--is_clonos get image marked for ClonOS]")
     sys.exit(0)
 
   arr_all_profiles=[]
 
   for myvm in profile_list.split():
     _locals['is_template']=0
+    _locals['is_cloud']=0
     _locals['clonos_active']=0
     _locals['vm_os_type']=""
     _locals['vm_profile']=""
     _locals['vm_description']=""
+    _locals['imgsize_min']=0
     clonos_active=0
     is_template=0
     vm_profile=""
@@ -94,19 +115,25 @@ def main(args):
     except:
       continue
 
-    if ( clonos_active != 1 ):
+    if ( clonos==1 and clonos_active != 1 ):
       continue
 
     try:
       long_description = _locals['long_description']
       vm_profile = _locals['vm_profile']
       vm_os_type = _locals['vm_os_type']
-      if ( tpl==1 ):
-          is_template = _locals['is_template']
+      imgsize_min = _locals['imgsize_min']
+      is_template = _locals['is_template']
     except:
       continue
 
     if ( tpl==1 and is_template==0 ):
+      continue
+
+    if ( cloud==1 and is_cloud==0 ):
+      continue
+
+    if ( vm==1 and is_template==1 ):
       continue
 
     arr_profile = {
@@ -114,6 +141,10 @@ def main(args):
       "profile": vm_profile,
       "type": vm_os_type,
       }
+
+    if (int(imgsize_min) > 0 ):
+      arr_profile['imgsize_min']=int(imgsize_min)
+
     arr_all_profiles.append(arr_profile)
 
   print(json.dumps(arr_all_profiles))
